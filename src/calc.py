@@ -110,7 +110,6 @@ class Calc(kp.Plugin):
             return
 
         suggestions = []
-        result_str = user_input
         try:
             result = simpleeval.simple_eval(user_input.translate(self.trans),
                                             functions=self.MATH_FUNCTIONS, names=self.MATH_CONSTANTS)
@@ -119,7 +118,7 @@ class Calc(kp.Plugin):
             suggestions.append(self.create_item(
                 category=kp.ItemCategory.EXPRESSION,
                 label=user_input,
-                short_desc="= {number}(Press Enter to copy the result)".format(number=result_str),
+                short_desc="= {number} (Press Enter to copy the result)".format(number=result_str),
                 target=user_input,
                 args_hint=kp.ItemArgsHint.FORBIDDEN,
                 hit_hint=kp.ItemHitHint.IGNORE,
@@ -127,9 +126,11 @@ class Calc(kp.Plugin):
         except Exception as e:
             if not items_chain:
                 return  # stay quiet if an item hasn't been selected yet
+            result_str = str(e)
             suggestions.append(self.create_error_item(
                 label=user_input,
                 short_desc="Error: " + str(e)))
+
         if user_input != result_str:  # Input String
             self.set_suggestions(suggestions, kp.Match.ANY, kp.Sort.NONE)
 
@@ -152,12 +153,12 @@ class Calc(kp.Plugin):
             "keyword", "main", self.DEFAULT_KEYWORD)
         self.rounding_precision = settings.get_int(
             "rounding_precision", "main", self.DEFAULT_ROUNDING_PRECISION)
+        self.validate_config_values()
+
+    def validate_config_values(self):
         if len(self.decimal_sign) != 1:
             self.decimal_sign = self.DEFAULT_DECIMAL_SIGN
         if self.rounding_precision not in range(self.MAX_ROUNDING_PRECISION):
             self.rounding_precision = self.DEFAULT_ROUNDING_PRECISION
-        self.make_trans()
-
-    def make_trans(self):
         self.trans = str.maketrans(self.DEFAULT_DECIMAL_SIGN + self.decimal_sign,
                                    self.decimal_sign + self.DEFAULT_DECIMAL_SIGN)
