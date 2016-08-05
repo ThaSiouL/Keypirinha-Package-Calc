@@ -1,7 +1,9 @@
 # Keypirinha | A semantic launcher for Windows | http://keypirinha.com
 
+import ast
 import math
 import random
+from itertools import chain
 
 import keypirinha as kp
 import keypirinha_util as kpu
@@ -78,10 +80,15 @@ class Calc(kp.Plugin):
         'tanh': math.tanh,
     }
 
+    ADDITIONAL_MATH_OPERATORS = {
+        ast.BitXor: simpleeval.safe_power
+    }
+
     always_evaluate = DEFAULT_ALWAYS_EVALUATE
     decimal_sign = DEFAULT_DECIMAL_SIGN
     keyword = DEFAULT_KEYWORD
     trans = ''
+    operators = dict(chain(simpleeval.DEFAULT_OPERATORS.items(), ADDITIONAL_MATH_OPERATORS.items()))
 
     def __init__(self):
         super().__init__()
@@ -112,7 +119,9 @@ class Calc(kp.Plugin):
         suggestions = []
         try:
             result = simpleeval.simple_eval(user_input.translate(self.trans),
-                                            functions=self.MATH_FUNCTIONS, names=self.MATH_CONSTANTS)
+                                            operators=self.operators,
+                                            functions=self.MATH_FUNCTIONS,
+                                            names=self.MATH_CONSTANTS)
             result_str = "{number:.{digits}g}".format(number=result, digits=self.rounding_precision).translate(
                 self.trans)
             suggestions.append(self.create_item(
