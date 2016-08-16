@@ -10,4 +10,4 @@ https://github.com/Keypirinha/Keypirinha
 - The result will only be shown when the result differs from the input.
 - The Keyword for the package is changeable via the `.ini` file.
 - Added the `bin` command to convert numbers to binary.
-- `^` usable as  an alias for `**` (Credit @Psistorm)
+- `^` usable as  an alias for `**` (Credit: [@Psistorm](https://github.com/psistorm))
