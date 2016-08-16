@@ -23,6 +23,7 @@ class Calc(kp.Plugin):
     DEFAULT_DECIMAL_SIGN = "."
     MAX_ROUNDING_PRECISION = 16
     DEFAULT_ROUNDING_PRECISION = 8
+    DEFAULT_SEPERATOR = ","
 
     MATH_CONSTANTS = {
         'pi': math.pi,
@@ -87,7 +88,9 @@ class Calc(kp.Plugin):
     always_evaluate = DEFAULT_ALWAYS_EVALUATE
     decimal_sign = DEFAULT_DECIMAL_SIGN
     keyword = DEFAULT_KEYWORD
-    trans = ''
+    trans_input = ''
+    trans_output = ''
+    seperator = DEFAULT_SEPERATOR
     operators = dict(chain(simpleeval.DEFAULT_OPERATORS.items(), ADDITIONAL_MATH_OPERATORS.items()))
 
     def __init__(self):
@@ -118,12 +121,11 @@ class Calc(kp.Plugin):
 
         suggestions = []
         try:
-            result = simpleeval.simple_eval(user_input.translate(self.trans),
+            result = simpleeval.simple_eval(self.format_input(user_input),
                                             operators=self.operators,
                                             functions=self.MATH_FUNCTIONS,
                                             names=self.MATH_CONSTANTS)
-            result_str = "{number:.{digits}g}".format(number=result, digits=self.rounding_precision).translate(
-                self.trans)
+            result_str = self.format_result(result)
             suggestions.append(self.create_item(
                 category=kp.ItemCategory.EXPRESSION,
                 label=user_input,
@@ -162,12 +164,32 @@ class Calc(kp.Plugin):
             "keyword", "main", self.DEFAULT_KEYWORD)
         self.rounding_precision = settings.get_int(
             "rounding_precision", "main", self.DEFAULT_ROUNDING_PRECISION)
+        self.seperator = settings.get_stripped(
+            "seperator", "main", self.DEFAULT_SEPERATOR)
         self.validate_config_values()
 
     def validate_config_values(self):
         if len(self.decimal_sign) != 1:
             self.decimal_sign = self.DEFAULT_DECIMAL_SIGN
+        if len(self.seperator) != 1:
+            self.seperator = self.DEFAULT_SEPERATOR
         if self.rounding_precision not in range(self.MAX_ROUNDING_PRECISION):
             self.rounding_precision = self.DEFAULT_ROUNDING_PRECISION
-        self.trans = str.maketrans(self.DEFAULT_DECIMAL_SIGN + self.decimal_sign,
-                                   self.decimal_sign + self.DEFAULT_DECIMAL_SIGN)
+        self.trans_output = str.maketrans(self.DEFAULT_DECIMAL_SIGN + self.DEFAULT_SEPERATOR,
+                                          self.decimal_sign + self.seperator)
+        self.trans_input = str.maketrans(self.decimal_sign + self.seperator,
+                                         self.DEFAULT_DECIMAL_SIGN + self.DEFAULT_SEPERATOR)
+
+    def format_decimal(self, result):
+        try:
+            return "{number:.{digits}g}".format(number=result,
+                                                digits=self.rounding_precision)
+        except ValueError:
+            return result
+
+    def format_result(self, result):
+        return self.format_decimal(result) \
+            .translate(self.trans_output)
+
+    def format_input(self, user_input):
+        return user_input.translate(self.trans_input)
