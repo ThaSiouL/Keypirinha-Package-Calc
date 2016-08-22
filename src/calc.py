@@ -390,7 +390,7 @@ class Calc(kp.Plugin):
         elif isinstance(self.ans, int):
             return (self.ans, hex(self.ans), bin(self.ans), oct(self.ans)) + self._currencyfmt(self.ans)
         elif isinstance(self.ans, float):
-            self.ans = decimal.Decimal(self.ans)
+            self.ans = decimal.Decimal('{number:.{precision}g}'.format(number=self.ans, precision=14))
         elif isinstance(self.ans, complex):
             return str(self.ans)
 
@@ -400,7 +400,6 @@ class Calc(kp.Plugin):
             else:
                 return (
                            str(self.ans.normalize()).translate(self.transmap_output),
-                           str(self.ans).translate(self.transmap_output),
                            str(self.ans.to_eng_string()).translate(self.transmap_output)) + self._currencyfmt(self.ans)
 
         # duh?!
