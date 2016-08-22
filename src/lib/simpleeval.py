@@ -1,5 +1,5 @@
 '''
-SimpleEval - (C) 2013/2015 Daniel Fairhead
+SimpleEval - (C) 2013-2016 Daniel Fairhead
 -------------------------------------
 
 An short, easy to use, safe and reasonably extensible expression evaluator.
@@ -39,6 +39,7 @@ Contributors:
 - dratchkov (David R) (nested dicts)
 - marky1991 (Mark Young) (slicing)
 - T045T (Nils Berg) (!=, py3kstr, obj.attributes)
+- perkinslr (Logan Perkins) (.__globals__ or .func_ breakouts)
 
 -------------------------------------
 Usage:
@@ -194,8 +195,7 @@ DEFAULT_OPERATORS = {ast.Add: safe_add, ast.Sub: op.sub, ast.Mult: safe_mult,
                      ast.Div: op.truediv, ast.Pow: safe_power, ast.Mod: op.mod,
                      ast.Eq: op.eq, ast.NotEq: op.ne, ast.Gt: op.gt, ast.Lt: op.lt,
                      ast.GtE: op.ge, ast.LtE: op.le, ast.USub: op.neg,
-                     ast.UAdd: op.pos,
-                     ast.LShift: op.lshift, ast.RShift: op.rshift}  # [JCL]
+                     ast.UAdd: op.pos}
 
 DEFAULT_FUNCTIONS = {"rand": random, "randint": random_int,
                      "int": int, "float": float, "str": str if PYTHON3 else unicode}
@@ -271,9 +271,17 @@ class SimpleEval(object):  # pylint: disable=too-few-public-methods
                                                  self._eval(node.right))
         elif isinstance(node, ast.BoolOp):  # and & or...
             if isinstance(node.op, ast.And):
-                return all((self._eval(v) for v in node.values))
+                for v in node.values:
+                    vout = self._eval(v)
+                    if not vout:
+                        return False
+                return vout
             elif isinstance(node.op, ast.Or):
-                return any((self._eval(v) for v in node.values))
+                for v in node.values:
+                    n = self._eval(v)
+                    if n:
+                        return n
+                return False
         elif isinstance(node, ast.Compare):  # 1 < 2, a == b...
             return self.operators[type(node.ops[0])](self._eval(node.left),
                                                      self._eval(node.comparators[0]))
@@ -313,6 +321,11 @@ class SimpleEval(object):  # pylint: disable=too-few-public-methods
             return self._eval(node.value)[self._eval(node.slice)]
 
         elif isinstance(node, ast.Attribute):  # a.b.c
+
+            if node.attr.startswith('__') or node.attr.startswith('func_'):
+                raise FeatureNotAvailable("Sorry, access to __attributes or "
+                                          "func_ attributes is not available. ({0})".format(node.attr))
+
             try:
                 return self._eval(node.value)[node.attr]
             except (KeyError, TypeError):
