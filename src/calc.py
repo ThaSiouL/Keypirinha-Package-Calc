@@ -400,6 +400,7 @@ class Calc(kp.Plugin):
             else:
                 return (
                            str(self.ans.normalize()).translate(self.transmap_output),
+                           str(self.ans).translate(self.transmap_output),
                            str(self.ans.to_eng_string()).translate(self.transmap_output)) + self._currencyfmt(self.ans)
 
         # duh?!
